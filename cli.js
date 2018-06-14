@@ -6,11 +6,12 @@ const yargs = require('yargs');
 const fs = require('fs');
 const ora = require('ora');
 const chalk = require('chalk');
-const request = require('request');
+const request_ = require('request');
 const moment = require('moment');
 const inquirer = require('inquirer');
 const Table = require('cli-table2');
 const config = require('./config');
+const constants = require('./constants');
 const leagueIds = require('./leagueIds');
 const helpers = require('./helpers');
 const path = require('path');
@@ -19,7 +20,6 @@ const path = require('path');
  * Get all helpers from `helpers.js`
  */
 const fixturesHelper = helpers.fixturesHelper;
-const getURL = helpers.getURL;
 const refresh = helpers.refresh;
 const scoresHelper = helpers.scoresHelper;
 const standingsHelper = helpers.standings;
@@ -31,6 +31,11 @@ const updateMessage = helpers.updateMessage;
 const headers = {
   'X-Auth-Token': config.API_KEY,
 };
+
+const request = request_.defaults({
+  baseUrl: constants.API_URL,
+  headers,
+});
 
 /**
  * Command line interface code for the app
@@ -67,17 +72,16 @@ const argv = yargs
 
     /**
      * Creates request to fetch fixtures and show them
-     * @param  {String} options."url":     getURL(url) End point from where data
-     *                                                    needs to be fetched
-     * @param  {Object} options."headers": headers     Headers for the request
-     * @return {None}                                  None
+     * @param  {String} "url":     End point from where data
+     *                             needs to be fetched
+     * @return {None}              None
      */
-    request({ url: getURL(url), headers }, (err, res, body) => {
+    request(url, (err, res, body) => {
+      spinner.stop();
+
       if (err) {
-        spinner.stop();
         updateMessage('REQ_ERROR');
       } else {
-        spinner.stop();
         scoresHelper(scores.l, team, body);
       }
     });
@@ -135,10 +139,7 @@ const argv = yargs
       const id = leagueIds[league].id;
       const name = leagueIds[league].caption;
 
-      request({
-        url: getURL(`competitions/${id}/fixtures?timeFrame=${timeFrame}`),
-        headers,
-      }, (err, res, body) => {
+      request(`competitions/${id}/fixtures?timeFrame=${timeFrame}`, (err, res, body) => {
         if (err) {
           spinner.stop();
           updateMessage('REQ_ERROR');
@@ -148,10 +149,7 @@ const argv = yargs
         }
       });
     } else {
-      request({
-        url: getURL(`fixtures?timeFrame=${timeFrame}`),
-        headers,
-      }, (err, res, body) => {
+      request(`fixtures?timeFrame=${timeFrame}`, (err, res, body) => {
         if (err) {
           spinner.stop();
           updateMessage('REQ_ERROR');
@@ -185,10 +183,7 @@ const argv = yargs
 
     const id = leagueIds[league].id;
 
-    request({
-      url: getURL(`competitions/${id}/leagueTable`),
-      headers,
-    }, (err, res, body) => {
+    request(`competitions/${id}/leagueTable`, (err, res, body) => {
       if (err) {
         spinner.stop();
         updateMessage('REQ_ERROR');
@@ -213,10 +208,7 @@ const argv = yargs
     const spinner = ora('Fetching data').start();
 
     if (lists.r) {
-      request({
-        url: getURL('competitions'),
-        headers,
-      }, (err, res, body) => {
+      request('competitions', (err, res, body) => {
         if (err) {
           spinner.stop();
           updateMessage('REQ_ERROR');
